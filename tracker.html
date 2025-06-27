@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Pelacak Keuangan</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS untuk tampilan aplikasi */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #f4f7f9;
+            --card-color: #ffffff;
+            --text-color: #333;
+            --primary-color: #4a90e2;
+            --red-color: #e74c3c;
+            --green-color: #2ecc71;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--card-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            padding: 25px;
+        }
+
+        h1, h2, h3 {
+            color: var(--text-color);
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8em;
+        }
+
+        /* Bagian Dashboard */
+        .dashboard {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .balance {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        /* Bagian Form Input */
+        .form-container h3 {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .form-control {
+            margin-bottom: 15px;
+        }
+
+        .form-control label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-control input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1em;
+        }
+
+        .form-control input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #357abd;
+        }
+        
+        /* Bagian Histori */
+        .history-container h3 {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .history-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+
+        .history-list li {
+            background-color: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            word-wrap: break-word;
+            flex-wrap: wrap;
+        }
+
+        .history-list li.plus {
+            border-right: 5px solid var(--green-color);
+        }
+
+        .history-list li.minus {
+            border-right: 5px solid var(--red-color);
+        }
+        
+        .transaction-details {
+            flex-grow: 1;
+        }
+
+        .transaction-desc {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .transaction-date {
+            font-size: 0.8em;
+            color: #777;
+        }
+
+        .transaction-amount {
+            font-weight: 600;
+            margin-left: 20px;
+        }
+
+        .delete-btn {
+            background-color: var(--red-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            position: absolute;
+            top: 50%;
+            right: -30px; /* Sembunyikan di luar */
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.3s, right 0.3s;
+        }
+
+        .history-list li:hover .delete-btn {
+            opacity: 1;
+            right: 15px; /* Munculkan saat hover */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Pelacak Keuangan</h1>
+
+        <div class="dashboard">
+            <h3>Saldo Saat Ini</h3>
+            <div id="balance" class="balance">Rp 0</div>
+            <hr style="margin: 20px 0; border-color: var(--border-color);">
+            <h3>Perbandingan 7 Hari Terakhir</h3>
+            <div class="chart-container">
+                <canvas id="transactionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <h3>Tambah Transaksi Baru</h3>
+            <form id="form">
+                <div class="form-control">
+                    <label for="description">Deskripsi</label>
+                    <input type="text" id="description" placeholder="Contoh: Gaji bulanan, bayar listrik..." required>
+                </div>
+                <div class="form-control">
+                    <label for="amount">Jumlah (Rp)</label>
+                    <input type="number" id="amount" placeholder="Gunakan - (minus) untuk pengeluaran. Cth: -50000" required>
+                </div>
+                <div class="form-control">
+                    <label for="date">Tanggal</label>
+                    <input type="date" id="date" required>
+                </div>
+                <button class="btn">Tambah Transaksi</button>
+            </form>
+        </div>
+        
+        <div class="history-container">
+            <h3 style="margin-top: 25px;">Histori Transaksi</h3>
+            <ul id="history-list" class="history-list">
+                </ul>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript untuk fungsionalitas aplikasi
+        const balance = document.getElementById('balance');
+        const list = document.getElementById('history-list');
+        const form = document.getElementById('form');
+        const descriptionInput = document.getElementById('description');
+        const amountInput = document.getElementById('amount');
+        const dateInput = document.getElementById('date');
+        const ctx = document.getElementById('transactionChart').getContext('2d');
+
+        // Mengambil data dari localStorage atau membuat array kosong
+        const localStorageTransactions = JSON.parse(localStorage.getItem('transactions'));
+        let transactions = localStorage.getItem('transactions') !== null ? localStorageTransactions : [];
+        
+        let transactionChart; // Variabel untuk menyimpan objek chart
+
+        // Fungsi untuk format mata uang Rupiah
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+        }
+
+        // Fungsi untuk format tanggal
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        // Fungsi untuk menambahkan transaksi baru
+        function addTransaction(e) {
+            e.preventDefault();
+
+            if (descriptionInput.value.trim() === '' || amountInput.value.trim() === '' || dateInput.value.trim() === '') {
+                alert('Mohon isi semua kolom (Deskripsi, Jumlah, dan Tanggal).');
+            } else {
+                const transaction = {
+                    id: generateID(),
+                    description: descriptionInput.value,
+                    amount: +amountInput.value, // Konversi ke tipe number
+                    date: dateInput.value
+                };
+
+                transactions.push(transaction);
+                updateDOM();
+                updateLocalStorage();
+
+                // Kosongkan input form
+                descriptionInput.value = '';
+                amountInput.value = '';
+                dateInput.value = new Date().toISOString().slice(0, 10);
+            }
+        }
+
+        // Fungsi untuk membuat ID unik
+        function generateID() {
+            return Math.floor(Math.random() * 1000000000);
+        }
+
+        // Fungsi untuk menampilkan transaksi di histori
+        function addTransactionToDOM(transaction) {
+            const sign = transaction.amount < 0 ? 'minus' : 'plus';
+            const item = document.createElement('li');
+            item.classList.add(sign);
+
+            item.innerHTML = `
+                <div class="transaction-details">
+                    <span class="transaction-desc">${transaction.description}</span>
+                    <span class="transaction-date">${formatDate(transaction.date)}</span>
+                </div>
+                <span class="transaction-amount">${formatCurrency(transaction.amount)}</span>
+                <button class="delete-btn" onclick="removeTransaction(${transaction.id})">Hapus</button>
+            `;
+            list.appendChild(item);
+        }
+        
+        // Fungsi untuk menghapus transaksi
+        function removeTransaction(id) {
+            transactions = transactions.filter(transaction => transaction.id !== id);
+            updateDOM();
+            updateLocalStorage();
+        }
+
+        // Fungsi untuk memperbarui saldo
+        function updateBalance() {
+            const amounts = transactions.map(transaction => transaction.amount);
+            const total = amounts.reduce((acc, item) => (acc += item), 0);
+            balance.innerText = formatCurrency(total);
+        }
+        
+        // Fungsi untuk memperbarui grafik
+        function updateChart() {
+            // Urutkan transaksi berdasarkan tanggal untuk kalkulasi yang benar
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const today = new Date();
+            const labels = [];
+            const dataPoints = [];
+
+            // Siapkan label untuk 7 hari terakhir
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                labels.push(date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }));
+            }
+            
+            // Hitung saldo akhir untuk setiap hari dalam 7 hari terakhir
+            let runningBalance = 0;
+            // Pertama, hitung saldo awal sebelum periode 7 hari
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            
+            const initialBalance = sortedTransactions
+                .filter(t => new Date(t.date) < sevenDaysAgo)
+                .reduce((acc, t) => acc + t.amount, 0);
+
+            runningBalance = initialBalance;
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                
+                // Tambahkan transaksi pada hari tersebut ke saldo berjalan
+                const dailyTotal = sortedTransactions
+                    .filter(t => new Date(t.date).toDateString() === date.toDateString())
+                    .reduce((acc, t) => acc + t.amount, 0);
+                    
+                runningBalance += dailyTotal;
+                dataPoints.push(runningBalance);
+            }
+
+            // Hancurkan chart lama jika ada, untuk membuat yang baru
+            if (transactionChart) {
+                transactionChart.destroy();
+            }
+
+            // Buat objek chart baru
+            transactionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Saldo Harian',
+                        data: dataPoints,
+                        backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                        borderColor: 'rgba(74, 144, 226, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false, // Saldo bisa negatif
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return 'Rp ' + (value / 1000) + 'k';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Fungsi utama untuk memperbarui seluruh tampilan (DOM)
+        function updateDOM() {
+            list.innerHTML = '';
+            transactions.forEach(addTransactionToDOM);
+            updateBalance();
+            updateChart();
+        }
+
+        // Fungsi untuk menyimpan data ke localStorage
+        function updateLocalStorage() {
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+        
+        // Fungsi inisialisasi
+        function init() {
+            // Set tanggal default ke hari ini
+            dateInput.value = new Date().toISOString().slice(0, 10);
+            updateDOM();
+        }
+
+        // Event Listener untuk form submission
+        form.addEventListener('submit', addTransaction);
+
+        // Jalankan aplikasi
+        init();
+        
+        // Buat fungsi removeTransaction bisa diakses secara global oleh onclick
+        window.removeTransaction = removeTransaction;
+
+    </script>
+</body>
+</html>
